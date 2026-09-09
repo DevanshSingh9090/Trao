@@ -4,6 +4,8 @@ import { loginUser, registerUser } from "../auth/auth.service.js";
 
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 
+import { User } from "../models/User.js";
+
 const cookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
@@ -146,12 +148,21 @@ export function logout(
   });
 }
 
-export function me(
-  req: AuthRequest,
-  res: Response
-) {
-  return res.json({
-    success: true,
-    user: req.user,
-  });
+export async function me(req: AuthRequest, res: Response) {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: "Authentication required" });
+  }
+
+  try {
+    const user = await User.findById(req.user.id).select("email");
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+
+    return res.json({ success: true, user: { id: req.user.id, email: user.email } });
+  } catch (error) {
+    console.error("Fetching current user failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to load user" });
+  }
 }
