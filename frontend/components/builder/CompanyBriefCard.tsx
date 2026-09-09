@@ -15,8 +15,8 @@ export default function CompanyBriefCard({
 }: {
   brief: CompanyBrief;
   state: ItemStateEntry | null;
-  onSave: (patch: { summary?: string; what_they_do?: string }) => Promise<void>;
-  onRegenerate: () => Promise<void>;
+  onSave: (patch: { summary?: string; what_they_do?: string }) => void;
+  onRegenerate: () => void;
   saving: boolean;
   regenerating: boolean;
 }) {
@@ -24,8 +24,16 @@ export default function CompanyBriefCard({
   const [summary, setSummary] = useState(brief.summary);
   const [whatTheyDo, setWhatTheyDo] = useState(brief.what_they_do);
 
-  async function handleSave() {
-    await onSave({ summary, what_they_do: whatTheyDo });
+  // See QuestionRow (QuestionList.tsx) for why this seeds on edit-start
+  // rather than syncing continuously via an effect.
+  function startEditing() {
+    setSummary(brief.summary);
+    setWhatTheyDo(brief.what_they_do);
+    setEditing(true);
+  }
+
+  function handleSave() {
+    onSave({ summary, what_they_do: whatTheyDo });
     setEditing(false);
   }
 
@@ -97,7 +105,7 @@ export default function CompanyBriefCard({
 
           <div className="mt-4 flex gap-2">
             <button
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
             >
               Edit

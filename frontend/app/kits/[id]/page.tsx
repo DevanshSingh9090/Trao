@@ -62,6 +62,14 @@ export default function KitBuilderPage() {
 
   const [actionError, setActionError] = useState("");
 
+  // Kept as a ref (not state) so optimistic handlers always snapshot the
+  // latest kit synchronously before mutating — avoids stale-closure bugs if
+  // two optimistic actions fire in quick succession.
+  const kitRef = useRef<Kit | null>(null);
+  useEffect(() => {
+    kitRef.current = kit;
+  }, [kit]);
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchKit = useCallback(async () => {
@@ -144,179 +152,295 @@ export default function KitBuilderPage() {
     }
   }
 
+  /**
+   * Phase 10: optimistic mutation helper. Applies `optimisticNext` to local
+   * state immediately (no round-trip wait), fires the real request in the
+   * background, then reconciles with the server's authoritative kit on
+   * success — or rolls all the way back to the pre-action snapshot and
+   * surfaces `errorFallback` on failure.
+   */
+  async function runOptimistic(
+    optimisticNext: Kit,
+    request: () => Promise<{ kit: Kit }>,
+    errorFallback: string
+  ) {
+    const previousKit = kitRef.current;
+    if (!previousKit) return;
+
+    setActionError("");
+    setKit(optimisticNext);
+
+    try {
+      const result = await request();
+      setKit(result.kit);
+    } catch (err) {
+      setKit(previousKit);
+      setActionError(err instanceof Error ? err.message : errorFallback);
+    }
+  }
+
   // ---------- questions ----------
 
-  async function patchQuestion(qid: string, patch: Partial<Question>) {
+  function patchQuestion(qid: string, patch: Partial<Question>) {
+    const current = kitRef.current;
+    if (!current) return;
+
+    const optimistic: Kit = {
+      ...current,
+      questions: current.questions.map((question) =>
+        question.id === qid ? { ...question, ...patch } : question
+      ),
+      itemState: {
+        ...current.itemState,
+        questions: {
+          ...current.itemState?.questions,
+          [qid]: { origin: "edited", updatedAt: new Date().toISOString() },
+        },
+      },
+    };
+
     setBusyQuestionId(qid);
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/questions/${qid}`, {
-        method: "PATCH",
-        body: JSON.stringify(patch),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to save question");
-    } finally {
-      setBusyQuestionId(null);
-    }
+    runOptimistic(
+      optimistic,
+      () =>
+        apiRequest<{ kit: Kit }>(`/api/kits/${id}/questions/${qid}`, {
+          method: "PATCH",
+          body: JSON.stringify(patch),
+        }),
+      "Unable to save question — change reverted"
+    ).finally(() => setBusyQuestionId(null));
   }
 
-  async function deleteQuestion(qid: string) {
+  function deleteQuestion(qid: string) {
     if (!confirm("Delete this question?")) return;
+    const current = kitRef.current;
+    if (!current) return;
+
+    const optimistic: Kit = {
+      ...current,
+      questions: current.questions.filter((question) => question.id !== qid),
+    };
+
     setBusyQuestionId(qid);
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/questions/${qid}`, {
-        method: "DELETE",
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to delete question");
-    } finally {
-      setBusyQuestionId(null);
-    }
+    runOptimistic(
+      optimistic,
+      () => apiRequest<{ kit: Kit }>(`/api/kits/${id}/questions/${qid}`, { method: "DELETE" }),
+      "Unable to delete question — restored"
+    ).finally(() => setBusyQuestionId(null));
   }
 
-  async function addQuestion(input: {
+  function addQuestion(input: {
     prompt: string;
     answer_outline: string;
     category: QuestionCategory;
     difficulty: 1 | 2 | 3;
   }) {
+    const current = kitRef.current;
+    if (!current) return;
+
+    const tempId = `temp-q-${Date.now()}`;
+    const optimisticQuestion: Question = { id: tempId, requirement_ids: [], ...input };
+
+    const optimistic: Kit = {
+      ...current,
+      questions: [...current.questions, optimisticQuestion],
+      itemState: {
+        ...current.itemState,
+        questions: {
+          ...current.itemState?.questions,
+          [tempId]: { origin: "pinned", updatedAt: new Date().toISOString() },
+        },
+      },
+    };
+
     setAddingQuestion(true);
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/questions`, {
-        method: "POST",
-        body: JSON.stringify({ ...input, pinned: true }),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to add question");
-    } finally {
-      setAddingQuestion(false);
-    }
+    runOptimistic(
+      optimistic,
+      () =>
+        apiRequest<{ kit: Kit }>(`/api/kits/${id}/questions`, {
+          method: "POST",
+          body: JSON.stringify({ ...input, pinned: true }),
+        }),
+      "Unable to add question — reverted"
+    ).finally(() => setAddingQuestion(false));
   }
 
-  async function reorderQuestions(orderedIds: string[]) {
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/reorder`, {
-        method: "POST",
-        body: JSON.stringify({ questionIds: orderedIds }),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to reorder questions");
-    }
+  function reorderQuestions(orderedIds: string[]) {
+    const current = kitRef.current;
+    if (!current) return;
+
+    const byId = new Map(current.questions.map((question) => [question.id, question]));
+    const optimisticQuestions = orderedIds
+      .map((qid) => byId.get(qid))
+      .filter((question): question is Question => Boolean(question));
+
+    // Safety net: if the ids somehow don't line up 1:1, don't silently drop
+    // questions from view — fall back to the original order instead.
+    if (optimisticQuestions.length !== current.questions.length) return;
+
+    const optimistic: Kit = { ...current, questions: optimisticQuestions };
+
+    runOptimistic(
+      optimistic,
+      () =>
+        apiRequest<{ kit: Kit }>(`/api/kits/${id}/reorder`, {
+          method: "POST",
+          body: JSON.stringify({ questionIds: orderedIds }),
+        }),
+      "Unable to reorder questions — order reverted"
+    );
   }
 
-  async function regenerateCategory(category: QuestionCategory) {
+  function regenerateCategory(category: QuestionCategory) {
+    // Not optimistic on purpose: this replaces content with fresh LLM output
+    // we don't have yet, so there's nothing honest to show until it returns.
+    // Phase 10 asks for optimistic edits/reorders, not for fabricating
+    // generated content ahead of time.
     setRegeneratingCategory(category);
     setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/regenerate`, {
-        method: "POST",
-        body: JSON.stringify({ section: `category:${category}` }),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to regenerate category");
-    } finally {
-      setRegeneratingCategory(null);
-    }
+    apiRequest<{ kit: Kit }>(`/api/kits/${id}/regenerate`, {
+      method: "POST",
+      body: JSON.stringify({ section: `category:${category}` }),
+    })
+      .then((result) => setKit(result.kit))
+      .catch((err) =>
+        setActionError(err instanceof Error ? err.message : "Unable to regenerate category")
+      )
+      .finally(() => setRegeneratingCategory(null));
   }
 
   // ---------- flashcards ----------
 
-  async function patchFlashcard(fid: string, patch: { front?: string; back?: string }) {
+  function patchFlashcard(fid: string, patch: { front?: string; back?: string }) {
+    const current = kitRef.current;
+    if (!current) return;
+
+    const optimistic: Kit = {
+      ...current,
+      flashcards: current.flashcards.map((flashcard) =>
+        flashcard.id === fid ? { ...flashcard, ...patch } : flashcard
+      ),
+      itemState: {
+        ...current.itemState,
+        flashcards: {
+          ...current.itemState?.flashcards,
+          [fid]: { origin: "edited", updatedAt: new Date().toISOString() },
+        },
+      },
+    };
+
     setBusyFlashcardId(fid);
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/flashcards/${fid}`, {
-        method: "PATCH",
-        body: JSON.stringify(patch),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to save flashcard");
-    } finally {
-      setBusyFlashcardId(null);
-    }
+    runOptimistic(
+      optimistic,
+      () =>
+        apiRequest<{ kit: Kit }>(`/api/kits/${id}/flashcards/${fid}`, {
+          method: "PATCH",
+          body: JSON.stringify(patch),
+        }),
+      "Unable to save flashcard — change reverted"
+    ).finally(() => setBusyFlashcardId(null));
   }
 
-  async function deleteFlashcard(fid: string) {
+  function deleteFlashcard(fid: string) {
     if (!confirm("Delete this flashcard?")) return;
+    const current = kitRef.current;
+    if (!current) return;
+
+    const optimistic: Kit = {
+      ...current,
+      flashcards: current.flashcards.filter((flashcard) => flashcard.id !== fid),
+    };
+
     setBusyFlashcardId(fid);
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/flashcards/${fid}`, {
-        method: "DELETE",
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to delete flashcard");
-    } finally {
-      setBusyFlashcardId(null);
-    }
+    runOptimistic(
+      optimistic,
+      () => apiRequest<{ kit: Kit }>(`/api/kits/${id}/flashcards/${fid}`, { method: "DELETE" }),
+      "Unable to delete flashcard — restored"
+    ).finally(() => setBusyFlashcardId(null));
   }
 
-  async function addFlashcard(input: { front: string; back: string }) {
+  function addFlashcard(input: { front: string; back: string }) {
+    const current = kitRef.current;
+    if (!current) return;
+
+    const tempId = `temp-f-${Date.now()}`;
+    const optimisticFlashcard: Flashcard = { id: tempId, requirement_ids: [], ...input };
+
+    const optimistic: Kit = {
+      ...current,
+      flashcards: [...current.flashcards, optimisticFlashcard],
+      itemState: {
+        ...current.itemState,
+        flashcards: {
+          ...current.itemState?.flashcards,
+          [tempId]: { origin: "pinned", updatedAt: new Date().toISOString() },
+        },
+      },
+    };
+
     setAddingFlashcard(true);
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/flashcards`, {
-        method: "POST",
-        body: JSON.stringify({ ...input, pinned: true }),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to add flashcard");
-    } finally {
-      setAddingFlashcard(false);
-    }
+    runOptimistic(
+      optimistic,
+      () =>
+        apiRequest<{ kit: Kit }>(`/api/kits/${id}/flashcards`, {
+          method: "POST",
+          body: JSON.stringify({ ...input, pinned: true }),
+        }),
+      "Unable to add flashcard — reverted"
+    ).finally(() => setAddingFlashcard(false));
   }
 
   // ---------- company brief ----------
 
-  async function saveBrief(patch: { summary?: string; what_they_do?: string }) {
+  function saveBrief(patch: { summary?: string; what_they_do?: string }) {
+    const current = kitRef.current;
+    if (!current) return;
+
+    const optimistic: Kit = {
+      ...current,
+      company_brief: { ...current.company_brief, ...patch },
+      itemState: {
+        ...current.itemState,
+        companyBrief: { origin: "edited", updatedAt: new Date().toISOString() },
+      },
+    };
+
     setSavingBrief(true);
-    setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/brief`, {
-        method: "PATCH",
-        body: JSON.stringify(patch),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to save brief");
-    } finally {
-      setSavingBrief(false);
-    }
+    runOptimistic(
+      optimistic,
+      () =>
+        apiRequest<{ kit: Kit }>(`/api/kits/${id}/brief`, {
+          method: "PATCH",
+          body: JSON.stringify(patch),
+        }),
+      "Unable to save brief — change reverted"
+    ).finally(() => setSavingBrief(false));
   }
 
-  async function regenerateBrief() {
+  function regenerateBrief() {
+    // Not optimistic — same reasoning as regenerateCategory above.
     setRegeneratingBrief(true);
     setActionError("");
-    try {
-      const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/regenerate`, {
-        method: "POST",
-        body: JSON.stringify({ section: "brief" }),
-      });
-      setKit(result.kit);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unable to regenerate brief");
-    } finally {
-      setRegeneratingBrief(false);
-    }
+    apiRequest<{ kit: Kit }>(`/api/kits/${id}/regenerate`, {
+      method: "POST",
+      body: JSON.stringify({ section: "brief" }),
+    })
+      .then((result) => setKit(result.kit))
+      .catch((err) =>
+        setActionError(err instanceof Error ? err.message : "Unable to regenerate brief")
+      )
+      .finally(() => setRegeneratingBrief(false));
   }
 
   // ---------- schedule ----------
 
-  async function regenerateSchedule(days?: number) {
+  async function regenerateSchedule(days?: number): Promise<void> {
+    // Not optimistic — rebuilding the schedule is pure code, but it depends
+    // on the authoritative server-side question set, so there's still a
+    // real round trip worth waiting for here.
     setRegeneratingSchedule(true);
     setActionError("");
+
     try {
       const result = await apiRequest<{ kit: Kit }>(`/api/kits/${id}/regenerate`, {
         method: "POST",
@@ -351,10 +475,10 @@ export default function KitBuilderPage() {
     <main className="min-h-screen bg-zinc-50">
       <AppHeader user={user} backHref="/kits" backLabel="Back to kits" />
 
-      <div className="mx-auto max-w-5xl px-6 py-10">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-2xl font-bold sm:text-3xl">
               {kit.source?.role || "Interview Kit"}
             </h1>
             {kit.source?.company && (
@@ -378,7 +502,7 @@ export default function KitBuilderPage() {
           </div>
         )}
 
-        <div className="mt-8">
+        <div className="mt-6 sm:mt-8">
           {kit.status === "draft" && (
             <GenerateForm
               onSubmit={handleGenerate}

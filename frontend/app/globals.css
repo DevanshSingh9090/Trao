@@ -18,3 +18,23 @@ body {
   background: #fafafa;
   color: #18181b;
 }
+
+/* Phase 10: keyboard navigation must have a clearly visible focus indicator
+   on every interactive element, not just inputs (which already style
+   focus:border-black). This is a single global rule instead of touching
+   every button/link className individually. */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

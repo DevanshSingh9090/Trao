@@ -21,8 +21,8 @@ function QuestionRow({
   index: number;
   total: number;
   busy: boolean;
-  onSave: (patch: Partial<Question>) => Promise<void>;
-  onDelete: () => Promise<void>;
+  onSave: (patch: Partial<Question>) => void;
+  onDelete: () => void;
   onMove: (direction: "up" | "down") => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -31,8 +31,24 @@ function QuestionRow({
   const [category, setCategory] = useState<QuestionCategory>(question.category);
   const [difficulty, setDifficulty] = useState<1 | 2 | 3>(question.difficulty);
 
-  async function handleSave() {
-    await onSave({ prompt, answer_outline: answerOutline, category, difficulty });
+  // Seed local fields from the *current* props right when editing starts
+  // (rather than syncing continuously via an effect — an anti-pattern for
+  // derived state). This also means if a previous optimistic save got
+  // rolled back while this row was closed, reopening Edit correctly shows
+  // the reverted, authoritative values instead of stale local state.
+  function startEditing() {
+    setPrompt(question.prompt);
+    setAnswerOutline(question.answer_outline);
+    setCategory(question.category);
+    setDifficulty(question.difficulty);
+    setEditing(true);
+  }
+
+  function handleSave() {
+    // Optimistic: fire the save and leave edit mode immediately — no
+    // round-trip wait. The parent updates the list instantly and reconciles
+    // (or rolls back) once the request settles.
+    onSave({ prompt, answer_outline: answerOutline, category, difficulty });
     setEditing(false);
   }
 
@@ -127,7 +143,7 @@ function QuestionRow({
           <p className="mt-1 text-sm text-zinc-500">{question.answer_outline}</p>
           <div className="mt-3 flex gap-2">
             <button
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               className="rounded-lg border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
             >
               Edit
@@ -155,7 +171,7 @@ function AddQuestionForm({
     answer_outline: string;
     category: QuestionCategory;
     difficulty: 1 | 2 | 3;
-  }) => Promise<void>;
+  }) => void;
   adding: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -175,9 +191,12 @@ function AddQuestionForm({
     );
   }
 
-  async function handleAdd() {
+  function handleAdd() {
     if (!prompt.trim()) return;
-    await onAdd({ prompt, answer_outline: answerOutline, category, difficulty });
+    // Optimistic: fire the add and close the form immediately. The new
+    // question appears in the list right away; the parent rolls the kit
+    // back and surfaces an error if the request ultimately fails.
+    onAdd({ prompt, answer_outline: answerOutline, category, difficulty });
     setPrompt("");
     setAnswerOutline("");
     setOpen(false);
@@ -257,16 +276,16 @@ export default function QuestionList({
   busyId: string | null;
   adding: boolean;
   regeneratingCategory: QuestionCategory | null;
-  onPatch: (qid: string, patch: Partial<Question>) => Promise<void>;
-  onDelete: (qid: string) => Promise<void>;
+  onPatch: (qid: string, patch: Partial<Question>) => void;
+  onDelete: (qid: string) => void;
   onAdd: (input: {
     prompt: string;
     answer_outline: string;
     category: QuestionCategory;
     difficulty: 1 | 2 | 3;
-  }) => Promise<void>;
-  onReorder: (orderedIds: string[]) => Promise<void>;
-  onRegenerateCategory: (category: QuestionCategory) => Promise<void>;
+  }) => void;
+  onReorder: (orderedIds: string[]) => void;
+  onRegenerateCategory: (category: QuestionCategory) => void;
 }) {
   const [regenTarget, setRegenTarget] = useState<QuestionCategory>("technical");
 
@@ -309,7 +328,7 @@ export default function QuestionList({
         </div>
       </div>
       <p className="mt-1 text-xs text-zinc-400">
-        Regenerating a category replaces its "generated" questions only — anything you
+        Regenerating a category replaces its &quot;generated&quot; questions only — anything you
         edited or added yourself is kept.
       </p>
 

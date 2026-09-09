@@ -15,15 +15,23 @@ function FlashcardRow({
   flashcard: Flashcard;
   state: ItemStateEntry | null;
   busy: boolean;
-  onSave: (patch: { front?: string; back?: string }) => Promise<void>;
-  onDelete: () => Promise<void>;
+  onSave: (patch: { front?: string; back?: string }) => void;
+  onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [front, setFront] = useState(flashcard.front);
   const [back, setBack] = useState(flashcard.back);
 
-  async function handleSave() {
-    await onSave({ front, back });
+  // See QuestionRow for why this seeds on edit-start rather than syncing
+  // continuously via an effect.
+  function startEditing() {
+    setFront(flashcard.front);
+    setBack(flashcard.back);
+    setEditing(true);
+  }
+
+  function handleSave() {
+    onSave({ front, back });
     setEditing(false);
   }
 
@@ -71,7 +79,7 @@ function FlashcardRow({
           <p className="mt-1 text-sm text-zinc-500">{flashcard.back}</p>
           <div className="mt-3 flex gap-2">
             <button
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               className="rounded-lg border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
             >
               Edit
@@ -94,7 +102,7 @@ function AddFlashcardForm({
   onAdd,
   adding,
 }: {
-  onAdd: (input: { front: string; back: string }) => Promise<void>;
+  onAdd: (input: { front: string; back: string }) => void;
   adding: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -112,9 +120,9 @@ function AddFlashcardForm({
     );
   }
 
-  async function handleAdd() {
+  function handleAdd() {
     if (!front.trim() || !back.trim()) return;
-    await onAdd({ front, back });
+    onAdd({ front, back });
     setFront("");
     setBack("");
     setOpen(false);
@@ -167,9 +175,9 @@ export default function FlashcardList({
   itemState: Record<string, ItemStateEntry>;
   busyId: string | null;
   adding: boolean;
-  onPatch: (fid: string, patch: { front?: string; back?: string }) => Promise<void>;
-  onDelete: (fid: string) => Promise<void>;
-  onAdd: (input: { front: string; back: string }) => Promise<void>;
+  onPatch: (fid: string, patch: { front?: string; back?: string }) => void;
+  onDelete: (fid: string) => void;
+  onAdd: (input: { front: string; back: string }) => void;
 }) {
   return (
     <section className="rounded-xl border border-zinc-200 bg-white p-6">
