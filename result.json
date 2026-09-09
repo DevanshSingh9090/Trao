@@ -1,0 +1,192 @@
+﻿{
+    "success":  true,
+    "kit":  {
+                "_id":  "6aa0d118b9db2eb6c6a75c78",
+                "userId":  "6aa0d102b9db2eb6c6a75c77",
+                "status":  "ready",
+                "questions":  [
+                                  {
+                                      "id":  "q1",
+                                      "requirement_ids":  [
+                                                              "r1"
+                                                          ],
+                                      "category":  "technical",
+                                      "prompt":  "Can you explain the stages of the Node.js Event Loop in detail? How do process.nextTick(), setImmediate(), and Promises differ in execution timing across these phases?",
+                                      "answer_outline":  "1. Detail the main phases of the Event Loop: Timers, Pending Callbacks, Idle/Prepare, Poll, Check, and Close Callbacks.\n2. Explain Microtask Queues: process.nextTick() queue vs. Promise microtask queue, noting that process.nextTick() executes immediately after the current operation before any other microtasks or phase transitions.\n3. Contrast setImmediate() (executes during the Check phase) with setTimeout() (executes during the Timers phase once the threshold has passed).\n4. Discuss how phase transitions evaluate microtasks before moving forward.",
+                                      "difficulty":  3
+                                  },
+                                  {
+                                      "id":  "q2",
+                                      "requirement_ids":  [
+                                                              "r1"
+                                                          ],
+                                      "category":  "technical",
+                                      "prompt":  "How do Node.js Streams help optimize memory consumption when handling large datasets, and how is backpressure managed when piping data from a fast readable stream to a slow writable stream?",
+                                      "answer_outline":  "1. Explain that streams process data in chunks rather than loading entire payloads into memory.\n2. Define backpressure as a mechanism to signal to a readable stream that the writable stream\u0027s buffer is full.\n3. Describe the manual implementation: monitoring stream.write() returning false, pausing readable streams via readable.pause(), listening for the \u0027drain\u0027 event on writable streams, and calling readable.resume().\n4. Mention how readable.pipe() or stream.pipeline() handles backpressure automatically.",
+                                      "difficulty":  2
+                                  },
+                                  {
+                                      "id":  "q3",
+                                      "requirement_ids":  [
+                                                              "r1"
+                                                          ],
+                                      "category":  "technical",
+                                      "prompt":  "What are the key differences between the Cluster module and Worker Threads in Node.js, and in what scenarios would you choose one over the other?",
+                                      "answer_outline":  "1. Cluster Module: Spawns multiple independent Node.js processes sharing server ports; best for scaling I/O-bound web applications across multiple CPU cores.\n2. Worker Threads: Runs multiple threads within the same process using shared memory (e.g., SharedArrayBuffer); best for CPU-bound tasks like cryptography, image processing, or heavy mathematical computations.\n3. Discuss memory isolation vs shared memory trade-offs and process overhead.",
+                                      "difficulty":  2
+                                  },
+                                  {
+                                      "id":  "q4",
+                                      "requirement_ids":  [
+                                                              "r1"
+                                                          ],
+                                      "category":  "technical",
+                                      "prompt":  "How would you diagnose, debug, and resolve a memory leak in a production Node.js application?",
+                                      "answer_outline":  "1. Monitoring: Track process memory metrics (heapUsed, RSS) via APM tools or process.memoryUsage().\n2. Reproduction \u0026 Diagnostics: Take baseline heap snapshots using Chrome DevTools or the native v8 module, apply load, and take subsequent snapshots.\n3. Identification: Compare heap snapshots to locate retained objects, commonly caused by global variables, uncleared setIntervals, event listener leaks, or uncollected closures.\n4. Remediation: Fix code bindings, ensure proper event cleanup, and validate memory stability via load testing.",
+                                      "difficulty":  3
+                                  },
+                                  {
+                                      "id":  "q5",
+                                      "requirement_ids":  [
+                                                              "r1"
+                                                          ],
+                                      "category":  "system-design",
+                                      "prompt":  "How would you design a scalable real-time notification system in Node.js capable of maintaining millions of concurrent WebSocket connections?",
+                                      "answer_outline":  "Explain horizontal scaling of WebSocket servers, using Redis Pub/Sub or NATS to broadcast messages across Node.js instances, implementing sticky sessions or API Gateways for connection routing, leveraging Node.js streams or low-overhead WebSocket libraries (e.g., uWebSockets.js), and managing memory per connection to prevent OOM errors.",
+                                      "difficulty":  3
+                                  },
+                                  {
+                                      "id":  "q6",
+                                      "requirement_ids":  [
+                                                              "r1"
+                                                          ],
+                                      "category":  "system-design",
+                                      "prompt":  "In a Node.js architecture that handles both quick I/O API requests and CPU-intensive processing, how would you design the system to prevent the event loop from being blocked?",
+                                      "answer_outline":  "Discuss offloading heavy tasks away from the main thread/server. Options include using Node.js Worker Threads for lighter compute tasks or offloading to asynchronous worker processes using message queues (e.g., BullMQ, RabbitMQ, Kafka). Highlight decoupling API routing from task processing and scaling API gateway nodes independently from worker nodes.",
+                                      "difficulty":  2
+                                  },
+                                  {
+                                      "id":  "q7",
+                                      "requirement_ids":  [
+                                                              "r1"
+                                                          ],
+                                      "category":  "system-design",
+                                      "prompt":  "How would you design a large-scale file upload and processing pipeline in Node.js to minimize memory usage and avoid buffering entire files into RAM?",
+                                      "answer_outline":  "Describe leveraging Node.js Streams (`stream.pipeline`) to chunk and pipe incoming HTTP request streams directly to cloud storage (e.g., AWS S3 multipart upload) or processing streams. Cover backpressure handling, error handling across stream stages, and using presigned URLs to offload direct file transfers from Node.js servers entirely where applicable.",
+                                      "difficulty":  3
+                                  }
+                              ],
+                "flashcards":  [
+                                   {
+                                       "id":  "f1",
+                                       "front":  "How many years of Node.js experience are required for this role?",
+                                       "back":  "A minimum of 5+ years of Node.js experience is required.",
+                                       "requirement_ids":  [
+                                                               "r1"
+                                                           ]
+                                   }
+                               ],
+                "itemState":  {
+                                  "companyBrief":  null,
+                                  "schedule":  null
+                              },
+                "practiceLog":  [
+
+                                ],
+                "createdAt":  "2026-09-09T03:23:04.003Z",
+                "updatedAt":  "2026-09-09T03:26:13.423Z",
+                "__v":  2,
+                "company_brief":  {
+                                      "summary":  "No company pages could be retrieved, so no research-backed brief could be generated.",
+                                      "what_they_do":  "",
+                                      "sources":  [
+
+                                                  ]
+                                  },
+                "coverage":  {
+                                 "uncovered_requirement_ids":  [
+
+                                                               ],
+                                 "passes":  0
+                             },
+                "role":  {
+                             "title":  "Senior Backend Engineer",
+                             "seniority":  "Senior",
+                             "responsibilities":  [
+
+                                                  ],
+                             "requirements":  [
+                                                  {
+                                                      "text":  "5+ years of Node.js experience",
+                                                      "kind":  "technical",
+                                                      "priority":  "must",
+                                                      "id":  "r1"
+                                                  }
+                                              ]
+                         },
+                "schedule":  {
+                                 "days_available":  5,
+                                 "days":  [
+                                              {
+                                                  "day":  1,
+                                                  "focus":  "technical",
+                                                  "question_ids":  [
+                                                                       "q1",
+                                                                       "q4"
+                                                                   ],
+                                                  "minutes":  50
+                                              },
+                                              {
+                                                  "day":  2,
+                                                  "focus":  "system-design",
+                                                  "question_ids":  [
+                                                                       "q5"
+                                                                   ],
+                                                  "minutes":  25
+                                              },
+                                              {
+                                                  "day":  3,
+                                                  "focus":  "system-design",
+                                                  "question_ids":  [
+                                                                       "q7",
+                                                                       "q2"
+                                                                   ],
+                                                  "minutes":  45
+                                              },
+                                              {
+                                                  "day":  4,
+                                                  "focus":  "technical",
+                                                  "question_ids":  [
+                                                                       "q3"
+                                                                   ],
+                                                  "minutes":  20
+                                              },
+                                              {
+                                                  "day":  5,
+                                                  "focus":  "system-design",
+                                                  "question_ids":  [
+                                                                       "q6"
+                                                                   ],
+                                                  "minutes":  20
+                                              }
+                                          ]
+                             },
+                "source":  {
+                               "company":  "stripe",
+                               "company_url":  "https://stripe.com",
+                               "role":  "Senior Backend Engineer",
+                               "location":  "",
+                               "jd_chars":  106,
+                               "researched_at":  "2026-09-09T03:26:13.421Z",
+                               "pages_used":  [
+
+                                              ]
+                           }
+            },
+    "researchFailures":  [
+                             {
+                                 "url":  "https://stripe.com/",
+                                 "reason":  "Redirect skipped: https://stripe.com/in"
+                             }
+                         ]
+}
