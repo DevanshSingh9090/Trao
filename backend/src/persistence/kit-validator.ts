@@ -101,10 +101,33 @@ export function validateKitStructure(kit: any): KitValidationResult {
 
   require(!!kit.schedule && typeof kit.schedule === "object", "schedule is required");
   if (kit.schedule) {
-    require(typeof kit.schedule.days_available === "number", "schedule.days_available must be a number");
+    require(Number.isInteger(kit.schedule.days_available), "schedule.days_available must be an integer");
+    require(kit.schedule.days_available > 0, "schedule.days_available must be greater than 0");
     require(Array.isArray(kit.schedule.days), "schedule.days must be an array");
 
     if (Array.isArray(kit.schedule.days)) {
+      require(
+        kit.schedule.days.length === kit.schedule.days_available,
+        "schedule.days length must equal schedule.days_available"
+      );
+
+      const seenDays = new Set<number>();
+      kit.schedule.days.forEach((day: any) => {
+        if (Number.isInteger(day?.day)) seenDays.add(day.day);
+      });
+      require(seenDays.size === kit.schedule.days.length, "schedule day numbers must be unique");
+
+      if (kit.schedule.days.length > 0) {
+        const expectedDays = new Set(
+          Array.from({ length: kit.schedule.days_available }, (_, index) => index + 1)
+        );
+        require(
+          seenDays.size === expectedDays.size &&
+            [...expectedDays].every((dayNumber) => seenDays.has(dayNumber)),
+          "schedule day numbers must cover 1..days_available"
+        );
+      }
+
       kit.schedule.days.forEach((day: any, index: number) => {
         require(typeof day?.day === "number", `schedule.days[${index}].day must be a number`);
         require(isString(day?.focus), `schedule.days[${index}].focus must be a string`);

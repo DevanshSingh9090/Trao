@@ -36,6 +36,14 @@ export async function generateKit(input: GenerateKitInput): Promise<GenerateKitR
     throw new KitGenerationError("EMPTY_JD", "Job description text is required");
   }
 
+  if (!Number.isInteger(input.days) || input.days <= 0) {
+    throw new KitGenerationError("INVALID_DAYS", "days must be a positive integer");
+  }
+
+  if (!input.companyUrl?.trim()) {
+    throw new KitGenerationError("INVALID_COMPANY_URL", "company_url is required");
+  }
+
   // Step 1: research the company site (Phase 2). An unreachable/thin site is
   // recorded honestly in `research.failures` — never aborts the run.
   const research = await researchCompany(input.companyUrl);
@@ -53,11 +61,14 @@ export async function generateKit(input: GenerateKitInput): Promise<GenerateKitR
   // is guaranteed even if nothing else about research succeeded (Phase 9 edge case).
   const companyBrief = await generateCompanyBrief(research.pages, research.interviewDiscussions);
 
-  // Step 4: generate questions, per requirement x relevant category. Discussion
-  // context (if any was found) only influences "company-fit" questions — this is
-  // what makes a kit for a company with a published interview process visibly
-  // differ from one with no public discussion at all (Phase 3 requirement).
-  const draftQuestions = await generateQuestions(requirements, research.interviewDiscussions);
+  // Step 4: generate questions per requirement/category. The same research
+  // context is available to every category, so retrieved company facts and
+  // public interview discussion can make relevant questions company-specific
+  // without allowing source text to become model instructions.
+  const draftQuestions = await generateQuestions(requirements, {
+    pages: research.pages,
+    interviewDiscussions: research.interviewDiscussions,
+  });
 
   // Step 5: generate flashcards tied to requirement_ids.
   const flashcards = await generateFlashcards(requirements);

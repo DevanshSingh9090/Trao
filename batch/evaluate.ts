@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 // from — "reads credentials only from env vars documented in .env.example,
 // no extra setup" (Phase 6).
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env"), quiet: true });
 dotenv.config({ path: path.resolve(__dirname, "../backend/.env"), quiet: true });
 
 import { generateKit, KitGenerationError } from "../backend/src/pipeline/index.js";
@@ -107,12 +108,22 @@ async function processCase(batchCase: BatchCase): Promise<BatchKitEntry> {
       throw new KitGenerationError("INVALID_CASE", "Case is missing a valid string id");
     }
 
-    const days = Number.isInteger(batchCase.days) && batchCase.days > 0 ? batchCase.days : 5;
+    if (typeof batchCase.jd !== "string") {
+      throw new KitGenerationError("INVALID_CASE", "Case is missing a string jd");
+    }
+
+    if (typeof batchCase.company_url !== "string") {
+      throw new KitGenerationError("INVALID_CASE", "Case is missing a string company_url");
+    }
+
+    if (!Number.isInteger(batchCase.days) || batchCase.days <= 0) {
+      throw new KitGenerationError("INVALID_DAYS", "days must be a positive integer");
+    }
 
     const result = await generateKit({
-      jd: batchCase.jd ?? "",
-      companyUrl: batchCase.company_url ?? "",
-      days,
+      jd: batchCase.jd,
+      companyUrl: batchCase.company_url,
+      days: batchCase.days,
     });
 
     return { id, status: "ok", kit: result.kit, error: null };
