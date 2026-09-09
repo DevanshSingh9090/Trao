@@ -14,7 +14,11 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "npm --workspace backend run build",
     "build:frontend": "npm --workspace frontend run build",
-    "test": "tsx --test \"tests/**/*.test.ts\""
+    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "evaluate": "tsx batch/evaluate.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

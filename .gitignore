@@ -5,18 +5,19 @@ node_modules/
 # Backend
 backend/node_modules/
 backend/dist/
-backend/src/coverage/
 
 # Frontend
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 
-# Local environment files
+# Local environment files (real secrets only — .env.example must stay tracked)
 .env
-.env.*
+.env.local
+.env.*.local
 backend/.env
-backend/.env.*
+backend/.env.local
+backend/.env.*.local
 
 # Logs
 *.log

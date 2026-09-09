@@ -51,8 +51,16 @@ async function generateForRequirementCategory(
   const userPrompt = `requirement: "${requirement.text}", category: "${category}"`;
 
   const results = await generateJSON<
-    Array<{ prompt: string; answer_outline: string; difficulty: 1 | 2 | 3; category: string }>
-  >({ system: SYSTEM_PROMPT, user: userPrompt });
+    Array<{
+      prompt: string;
+      answer_outline: string;
+      difficulty: 1 | 2 | 3;
+      category: string;
+    }>
+  >({
+    system: SYSTEM_PROMPT,
+    user: userPrompt,
+  });
 
   return results.map((result) => ({
     id: "",
@@ -85,6 +93,33 @@ export async function generateQuestions(
           error
         );
       }
+    }
+  }
+
+  return questions;
+}
+
+/**
+ * Used by Phase 7's "regenerate one category" action. Unlike `generateQuestions`,
+ * this forces a *specific* category regardless of the requirement's `kind` —
+ * regeneration re-targets whatever category the replaced questions were already
+ * in, not whatever categories that kind would normally get.
+ */
+export async function generateQuestionsForCategory(
+  requirements: RequirementWithId[],
+  category: QuestionCategory
+): Promise<GeneratedQuestion[]> {
+  const questions: GeneratedQuestion[] = [];
+
+  for (const requirement of requirements) {
+    try {
+      const generated = await generateForRequirementCategory(requirement, category);
+      questions.push(...generated);
+    } catch (error) {
+      console.error(
+        `Category regeneration failed for requirement ${requirement.id} / ${category}:`,
+        error
+      );
     }
   }
 
