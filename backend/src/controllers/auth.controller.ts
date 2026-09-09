@@ -6,9 +6,9 @@ import type { AuthRequest } from "../middleware/auth.middleware.js";
 
 import { User } from "../models/User.js";
 
-const cookieOptions = {
+const cookieOptions: import("express").CookieOptions = {
   httpOnly: true,
-  sameSite: "lax" as const,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   secure: process.env.NODE_ENV === "production",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
@@ -138,7 +138,7 @@ export function logout(
 ) {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     secure: process.env.NODE_ENV === "production",
   });
 
