@@ -123,29 +123,28 @@ export async function generateKitForKit(req: AuthRequest, res: Response) {
   kit.status = "generating";
   await kit.save();
 
-  try {
-    const result = await generateKit({ jd, companyUrl, days: daysAvailable });
-
-    kit.source = result.kit.source as any;
-    kit.company_brief = result.kit.company_brief as any;
-    kit.role = result.kit.role as any;
-    kit.questions = result.kit.questions as any;
-    kit.flashcards = result.kit.flashcards as any;
-    kit.schedule = result.kit.schedule as any;
-    kit.coverage = result.kit.coverage as any;
-    kit.status = "ready";
-    await kit.save();
-
-    return res.json({ success: true, kit, researchFailures: result.researchFailures });
-  } catch (error) {
-    kit.status = "failed";
-    await kit.save();
-
-    console.error("Kit generation failed:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : "Kit generation failed",
+  // Fire-and-forget: don't block this request on the full pipeline (it can
+  // take well over a minute with scraping + multiple LLM calls). Persist the
+  // result to Mongo when it's done; the frontend picks it up via /status
+  // polling instead of waiting on this response. This also matters because
+  // requests routed through Vercel's rewrite proxy are capped at ~10s.
+  generateKit({ jd, companyUrl, days: daysAvailable })
+    .then(async (result) => {
+      kit.source = result.kit.source as any;
+      kit.company_brief = result.kit.company_brief as any;
+      kit.role = result.kit.role as any;
+      kit.questions = result.kit.questions as any;
+      kit.flashcards = result.kit.flashcards as any;
+      kit.schedule = result.kit.schedule as any;
+      kit.coverage = result.kit.coverage as any;
+      kit.status = "ready";
+      await kit.save();
+    })
+    .catch(async (error) => {
+      kit.status = "failed";
+      await kit.save();
+      console.error("Kit generation failed:", error);
     });
-  }
+
+  return res.status(202).json({ success: true, status: "generating" });
 }

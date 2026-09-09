@@ -138,12 +138,14 @@ export default function KitBuilderPage() {
     setResearchFailures([]);
 
     try {
-      const result = await apiRequest<{ kit: Kit; researchFailures?: ResearchFailure[] }>(
+      await apiRequest<{ status: string }>(
         `/api/kits/${id}/generate`,
         { method: "POST", body: JSON.stringify(input) }
       );
-      setKit(result.kit);
-      setResearchFailures(result.researchFailures || []);
+      // Backend now responds immediately (202) and runs generation in the
+      // background — the /status poll effect above picks up "ready"/"failed"
+      // and calls fetchKit() when it's done. Just reflect "generating" now.
+      await fetchKit();
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : "Generation failed");
       await fetchKit(); // pick up the persisted "failed" status
