@@ -2,6 +2,7 @@
   "name": "trao-ai-interview-prep-kit",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "AI Interview Prep Kit",
   "workspaces": [
     "frontend",
@@ -21,6 +22,7 @@
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
+    "@types/node": "^26.5.0",
     "concurrently": "^9.1.2",
     "tsx": "^4.23.13"
   }

@@ -35,7 +35,9 @@ export async function getKit(req: AuthRequest, res: Response) {
     });
   }
 
-  if (!mongoose.isValidObjectId(req.params.id)) {
+  const rawKitId = req.params.id;
+
+  if (Array.isArray(rawKitId) || typeof rawKitId !== "string" || !mongoose.isValidObjectId(rawKitId)) {
     return res.status(400).json({
       success: false,
       message: "Invalid kit id",
@@ -43,7 +45,7 @@ export async function getKit(req: AuthRequest, res: Response) {
   }
 
   const kit = await Kit.findOne({
-    _id: req.params.id,
+    _id: new mongoose.Types.ObjectId(rawKitId),
     userId: req.user.id,
   });
 
@@ -84,7 +86,9 @@ export async function generateKitForKit(req: AuthRequest, res: Response) {
     return res.status(401).json({ success: false, message: "Authentication required" });
   }
 
-  if (!mongoose.isValidObjectId(req.params.id)) {
+  const rawKitId = req.params.id;
+
+  if (Array.isArray(rawKitId) || typeof rawKitId !== "string" || !mongoose.isValidObjectId(rawKitId)) {
     return res.status(400).json({ success: false, message: "Invalid kit id" });
   }
 
@@ -100,12 +104,22 @@ export async function generateKitForKit(req: AuthRequest, res: Response) {
 
   const daysAvailable = Number.isInteger(days) && days > 0 ? days : 5;
 
-  const kit = await Kit.findOne({ _id: req.params.id, userId: req.user.id });
+  const kit = await Kit.findOne({
+    _id: new mongoose.Types.ObjectId(rawKitId),
+    userId: req.user.id,
+  });
 
   if (!kit) {
     return res.status(404).json({ success: false, message: "Kit not found" });
   }
 
+
+  // Design decision (Phase 9 edge case: "same description + company submitted
+  // twice"): every generation targets one specific Kit document, created as its
+  // own draft beforehand. Submitting the same JD + company_url twice just means
+  // two independent Kit documents with two independent runs — there is no
+  // cross-kit caching or dedup. This mirrors the same choice made in
+  // batch/evaluate.ts for the batch CLI, documented there too.
   kit.status = "generating";
   await kit.save();
 

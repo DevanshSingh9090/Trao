@@ -49,10 +49,15 @@ export async function generateKit(input: GenerateKitInput): Promise<GenerateKitR
   }));
 
   // Step 3: generate the company brief from whatever pages were actually retrieved.
-  const companyBrief = await generateCompanyBrief(research.pages);
+  // interviewDiscussions is passed through so an honest "no discussion found" note
+  // is guaranteed even if nothing else about research succeeded (Phase 9 edge case).
+  const companyBrief = await generateCompanyBrief(research.pages, research.interviewDiscussions);
 
-  // Step 4: generate questions, per requirement x relevant category.
-  const draftQuestions = await generateQuestions(requirements);
+  // Step 4: generate questions, per requirement x relevant category. Discussion
+  // context (if any was found) only influences "company-fit" questions — this is
+  // what makes a kit for a company with a published interview process visibly
+  // differ from one with no public discussion at all (Phase 3 requirement).
+  const draftQuestions = await generateQuestions(requirements, research.interviewDiscussions);
 
   // Step 5: generate flashcards tied to requirement_ids.
   const flashcards = await generateFlashcards(requirements);
