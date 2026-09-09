@@ -12,12 +12,17 @@ async function loadOwnedKit(req: AuthRequest, res: Response) {
     return null;
   }
 
-  if (!mongoose.isValidObjectId(req.params.id)) {
+  const rawKitId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (typeof rawKitId !== "string" || !mongoose.isValidObjectId(rawKitId)) {
     res.status(400).json({ success: false, message: "Invalid kit id" });
     return null;
   }
 
-  const kit = await Kit.findOne({ _id: req.params.id, userId: req.user.id });
+  const kit = await Kit.findOne({
+    _id: new mongoose.Types.ObjectId(rawKitId),
+    userId: new mongoose.Types.ObjectId(req.user.id),
+  });
 
   if (!kit) {
     res.status(404).json({ success: false, message: "Kit not found" });
@@ -35,7 +40,12 @@ export async function patchQuestion(req: AuthRequest, res: Response) {
   const kit = await loadOwnedKit(req, res);
   if (!kit) return;
 
-  const { qid } = req.params;
+  const qid = req.params.qid;
+
+  if (typeof qid !== "string") {
+    return res.status(400).json({ success: false, message: "Invalid question id" });
+  }
+
   const { prompt, answer_outline, category, difficulty } = req.body ?? {};
 
   const questions = (kit.questions ?? []) as any[];
@@ -99,7 +109,12 @@ export async function deleteQuestion(req: AuthRequest, res: Response) {
   const kit = await loadOwnedKit(req, res);
   if (!kit) return;
 
-  const { qid } = req.params;
+  const qid = req.params.qid;
+
+  if (typeof qid !== "string") {
+    return res.status(400).json({ success: false, message: "Invalid question id" });
+  }
+
   const questions = (kit.questions ?? []) as any[];
 
   if (!questions.some((question) => question.id === qid)) {
@@ -123,7 +138,12 @@ export async function patchFlashcard(req: AuthRequest, res: Response) {
   const kit = await loadOwnedKit(req, res);
   if (!kit) return;
 
-  const { fid } = req.params;
+  const fid = req.params.fid;
+
+  if (typeof fid !== "string") {
+    return res.status(400).json({ success: false, message: "Invalid flashcard id" });
+  }
+
   const { front, back } = req.body ?? {};
 
   const flashcards = (kit.flashcards ?? []) as any[];
@@ -183,7 +203,12 @@ export async function deleteFlashcard(req: AuthRequest, res: Response) {
   const kit = await loadOwnedKit(req, res);
   if (!kit) return;
 
-  const { fid } = req.params;
+  const fid = req.params.fid;
+
+  if (typeof fid !== "string") {
+    return res.status(400).json({ success: false, message: "Invalid flashcard id" });
+  }
+
   const flashcards = (kit.flashcards ?? []) as any[];
 
   if (!flashcards.some((flashcard) => flashcard.id === fid)) {

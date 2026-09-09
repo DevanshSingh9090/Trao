@@ -7,7 +7,7 @@ interface ApiRequestOptions
   skipJson?: boolean;
 }
 
-export async function apiRequest<T = any>(
+export async function apiRequest<T = unknown>(
   endpoint: string,
   options: ApiRequestOptions = {}
 ): Promise<T> {

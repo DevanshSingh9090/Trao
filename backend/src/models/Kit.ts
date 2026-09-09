@@ -94,12 +94,12 @@ const kitSchema = new Schema<IKit>(
     },
 
     questions: {
-      type: [Schema.Types.Mixed],
+      type: [Object],
       default: [],
     },
 
     flashcards: {
-      type: [Schema.Types.Mixed],
+      type: [Object],
       default: [],
     },
 
@@ -124,7 +124,7 @@ const kitSchema = new Schema<IKit>(
     },
 
     practiceLog: {
-      type: [Schema.Types.Mixed],
+      type: [Object],
       default: [],
     },
   },

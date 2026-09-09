@@ -102,11 +102,13 @@ async function fetchWithTimeout(
       };
     }
 
+    const contentTypeHeader =
+      response.headers.get("content-type") || "";
+
     const contentType =
-      response.headers
-        .get("content-type")
-        ?.split(";")[0]
-        .trim()
+      contentTypeHeader
+        .split(";")[0]
+        ?.trim()
         .toLowerCase() || "";
 
     if (

@@ -28,7 +28,14 @@ export function getLLMClient(): LLMClient {
 function stripCodeFences(raw: string): string {
   const trimmed = raw.trim();
   const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return fenceMatch ? fenceMatch[1].trim() : trimmed;
+
+  if (!fenceMatch) {
+    return trimmed;
+  }
+
+  const capturedContent = fenceMatch[1] ?? "";
+
+  return capturedContent.trim();
 }
 
 function sleep(ms: number): Promise<void> {

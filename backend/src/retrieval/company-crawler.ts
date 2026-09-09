@@ -39,6 +39,7 @@ export async function crawlCompany(
   } catch (error) {
     return {
       companyUrl,
+      companyName: "",
       homepage: null,
       rankedLinks: [],
       pages: [],
@@ -63,6 +64,7 @@ export async function crawlCompany(
   if (!homepageAllowed) {
     return {
       companyUrl,
+      companyName: "",
       homepage: null,
       rankedLinks: [],
       pages: [],
@@ -88,6 +90,7 @@ export async function crawlCompany(
   ) {
     return {
       companyUrl,
+      companyName: "",
       homepage: null,
       rankedLinks: [],
       pages: [],
@@ -209,6 +212,7 @@ export async function crawlCompany(
 
   return {
     companyUrl: safeUrl.href,
+    companyName: "",
     homepage,
     rankedLinks,
     pages,

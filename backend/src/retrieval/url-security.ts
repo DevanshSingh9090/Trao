@@ -8,7 +8,8 @@ function isPrivateIPv4(ip: string): boolean {
     return false;
   }
 
-  const [a, b] = parts;
+  const a = parts[0] ?? -1;
+  const b = parts[1] ?? -1;
 
   return (
     a === 0 ||

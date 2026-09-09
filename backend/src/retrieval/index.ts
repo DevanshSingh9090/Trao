@@ -48,21 +48,31 @@ function extractCompanyName(
     return "";
   }
 
-  return title
-    .split(/[|\-–—]/)[0]
-    .trim();
+  const segments =
+    title.split(/[|\-–—]/);
+  const firstSegment =
+    segments[0] ?? "";
+
+  return firstSegment.trim();
 }
 
 function extractDomainName(
   rawUrl: string
 ): string {
   try {
+    const parsedUrl =
+      new URL(rawUrl);
     const hostname =
-      new URL(rawUrl).hostname;
+      parsedUrl.hostname ?? "";
 
-    return hostname
-      .replace(/^www\./, "")
-      .split(".")[0];
+    const domainParts =
+      hostname
+        .replace(/^www\./, "")
+        .split(".");
+    const firstDomainPart =
+      domainParts[0] ?? "";
+
+    return firstDomainPart;
   } catch {
     return "";
   }

@@ -23,11 +23,13 @@ function parseRobots(
   const allow: string[] = [];
 
   for (const rawLine of lines) {
-    const line = rawLine
-      .split("#")[0]
-      .trim();
+    const line =
+      (rawLine || "")
+        .split("#")[0] ?? "";
 
-    if (!line) {
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
       continue;
     }
 
