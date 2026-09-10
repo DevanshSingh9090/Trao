@@ -83,3 +83,20 @@ export async function getPracticeCoverage(req: AuthRequest, res: Response) {
 
   return res.json({ success: true, coverage: practiceCoverage(flashcards, practiceLog) });
 }
+
+export async function resetPracticeLog(req: AuthRequest, res: Response) {
+  const kit = await loadOwnedKit(req, res);
+  if (!kit) return;
+
+  kit.practiceLog = [] as any;
+  await kit.save();
+
+  const flashcards = (kit.flashcards ?? []) as any[];
+  const next = pickNextCard(flashcards, []);
+
+  return res.json({
+    success: true,
+    next: next ?? null,
+    coverage: practiceCoverage(flashcards, []),
+  });
+}

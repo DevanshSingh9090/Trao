@@ -112,6 +112,25 @@ export default function PracticePage() {
     }
   }
 
+  async function handleRestart() {
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const result = await apiRequest<{ next: Flashcard | null; coverage: Coverage }>(
+        `/api/kits/${id}/practice/reset`,
+        { method: "POST" }
+      );
+      setCard(result.next);
+      setCoverage(result.coverage);
+      setReviewedCount(0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to restart practice session");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading) {
     return <LoadingState message="Starting practice session..." />;
   }
@@ -136,8 +155,17 @@ export default function PracticePage() {
         )}
 
         {!error && coverage && (
-          <div className="mt-6">
-            <PracticeCoverageBar total={coverage.total} reviewed={coverage.reviewed.length} />
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex-1">
+              <PracticeCoverageBar total={coverage.total} reviewed={coverage.reviewed.length} />
+            </div>
+            <button
+              onClick={handleRestart}
+              disabled={submitting}
+              className="whitespace-nowrap rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Restart practice
+            </button>
           </div>
         )}
 

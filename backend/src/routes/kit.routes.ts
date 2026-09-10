@@ -25,6 +25,7 @@ import {
   getNextPracticeCard,
   getPracticeCoverage,
   recordPracticeConfidence,
+  resetPracticeLog,
 } from "../controllers/practice.controller.js";
 
 import { requireAuth } from "../middleware/auth.middleware.js";
@@ -60,5 +61,6 @@ router.post("/:id/regenerate", regenerateSection);
 router.post("/:id/practice/session/next", getNextPracticeCard);
 router.post("/:id/practice/session/:cardId", recordPracticeConfidence);
 router.get("/:id/practice/coverage", getPracticeCoverage);
+router.post("/:id/practice/reset", resetPracticeLog);
 
 export default router;
