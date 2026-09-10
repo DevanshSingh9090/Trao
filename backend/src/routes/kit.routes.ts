@@ -5,6 +5,7 @@ import {
   generateKitForKit,
   getKit,
   listKits,
+  deleteKit,
 } from "../controllers/kit.controller.js";
 
 import {
@@ -36,6 +37,7 @@ router.use(requireAuth);
 router.get("/", listKits);
 router.post("/", createDraftKit);
 router.get("/:id", getKit);
+router.delete("/:id", deleteKit);
 router.post("/:id/generate", generateKitForKit);
 
 // Phase 7 — builder: status, edit/add/delete, reorder, regenerate

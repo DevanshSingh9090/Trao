@@ -68,6 +68,17 @@ export default function KitsPage() {
     }
   }
 
+  async function deleteKit(kitId: string) {
+    if (!confirm("Delete this kit? This can't be undone.")) return;
+
+    try {
+      await apiRequest(`/api/kits/${kitId}`, { method: "DELETE" });
+      setKits((prev) => prev.filter((kit) => kit._id !== kitId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete kit");
+    }
+  }
+
   if (loading) {
     return <LoadingState message="Loading your kits..." />;
   }
@@ -117,9 +128,21 @@ export default function KitsPage() {
                 <Link
                   key={kit._id}
                   href={`/kits/${kit._id}`}
-                  className="rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-400 hover:shadow-sm"
+                  className="relative rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-400 hover:shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deleteKit(kit._id);
+                    }}
+                    className="absolute right-3 top-3 rounded-md p-1 text-zinc-400 hover:bg-red-50 hover:text-red-600"
+                    aria-label="Delete kit"
+                  >
+                    ✕
+                  </button>
+
+                  <div className="flex items-center justify-between pr-6">
                     <span className="text-sm font-medium">
                       {kit.source?.role || kit.source?.company || "Interview Kit"}
                     </span>

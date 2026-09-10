@@ -62,6 +62,38 @@ export async function getKit(req: AuthRequest, res: Response) {
   });
 }
 
+export async function deleteKit(req: AuthRequest, res: Response) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+  }
+
+  const rawKitId = req.params.id;
+
+  if (Array.isArray(rawKitId) || typeof rawKitId !== "string" || !mongoose.isValidObjectId(rawKitId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid kit id",
+    });
+  }
+
+  const kit = await Kit.findOneAndDelete({
+    _id: new mongoose.Types.ObjectId(rawKitId),
+    userId: req.user.id,
+  });
+
+  if (!kit) {
+    return res.status(404).json({
+      success: false,
+      message: "Kit not found",
+    });
+  }
+
+  return res.json({ success: true });
+}
+
 export async function createDraftKit(req: AuthRequest, res: Response) {
   if (!req.user) {
     return res.status(401).json({
